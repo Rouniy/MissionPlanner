@@ -4,65 +4,94 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MissionPlanner.Views;
+using AvaloniaGrid = Avalonia.Controls.Grid;
 
 namespace MissionPlanner.Tests;
 
 /// <summary>
 /// Avalonia's Grid does not clip its children and Layoutable.ArrangeCore honours a child's MinWidth
 /// over the cell it was given, so a control that does not fit paints across its neighbours instead
-/// of being constrained or throwing. Nothing about that is visible at a window's default size - the
-/// joystick window laid out correctly at its 900px default while overlapping badly at the 640px
-/// minimum it can be dragged to - so every case here renders at the narrowest supported width.
+/// of being constrained or throwing. None of that is visible at a window's default size - the
+/// joystick window's RC bars only overflowed once it was dragged towards the 640px minimum it
+/// allows - so each case renders at both extremes.
 /// </summary>
 public class LayoutOverflowTests {
   /// Rounding slack. Arranged bounds land on subpixel values that differ harmlessly between runs.
   private const double Tolerance = 0.5;
 
-  /// Roughly two digits plus the text box's own padding. Below this a NumericUpDown has no readable
-  /// value even though the spinner buttons still draw, which is how several shipped.
-  private const double MinimumEditableWidth = 24;
+  /// A NumericUpDown's text box is its outer width less the two 34px spinner buttons and the
+  /// theme's 12px InputPad, so this floor corresponds to a control about 100px wide and leaves room
+  /// for roughly two digits. Measured against the joystick Expo field: 2px before it was widened,
+  /// 52px after.
+  private const double MinimumEditableWidth = 34;
+
+  /// Enough failures to show the shape of the problem without burying it.
+  private const int MaxReported = 12;
 
   [AvaloniaTheory]
   [InlineData(640)]
   [InlineData(900)]
   public void Joystick_setup_window_arranges_without_collisions(double width) {
-    JoystickSetupWindow window = new() { Width = width, Height = 700 };
+    JoystickSetupWindow? window = null;
 
     try {
+      // Constructing the view model subscribes to process-wide joystick state and starts a timer,
+      // so it must not happen outside the block that closes the window again.
+      window = new JoystickSetupWindow { Width = width, Height = 700 };
       window.Show();
-      Dispatcher.UIThread.RunJobs(DispatcherPriority.Layout);
+      Dispatcher.UIThread.RunJobs();
 
       List<string> problems = new();
-      CollectGridCollisions(window, problems);
+      CollectGridProblems(window, problems);
       CollectCollapsedInputs(window, problems);
 
-      Assert.True(problems.Count == 0,
-          $"Layout problems in {window.GetType().Name} at {width}px:"
-          + Environment.NewLine
-          + string.Join(Environment.NewLine, problems));
+      Assert.True(problems.Count == 0, Report(problems, width));
     } finally {
-      window.Close();
+      window?.Close();
     }
   }
 
-  /// <summary>
-  /// Two children of the same Grid that occupy disjoint column ranges must not overlap on screen.
-  /// Children deliberately sharing a cell - a ProgressBar with its value drawn centred over it, say
-  /// - share a column range and are skipped, so the check stays quiet about intentional stacking.
-  /// </summary>
-  private static void CollectGridCollisions(Visual root, List<string> problems) {
-    foreach (Grid grid in root.GetVisualDescendants().OfType<Grid>()) {
+  private static string Report(List<string> problems, double width) {
+    string body = string.Join(Environment.NewLine, problems.Take(MaxReported));
+    string more = problems.Count > MaxReported
+        ? $"{Environment.NewLine}... and {problems.Count - MaxReported} more"
+        : string.Empty;
+
+    return $"Layout problems in JoystickSetupWindow at {width}px:{Environment.NewLine}{body}{more}";
+  }
+
+  private static void CollectGridProblems(Visual root, List<string> problems) {
+    foreach (AvaloniaGrid grid in root.GetVisualDescendants().OfType<AvaloniaGrid>()) {
+      // Grids inside a control template are skipped. Avalonia's own templates routinely park a
+      // popup or overlay part in a nominal cell it deliberately exceeds - Fluent's ComboBox puts
+      // PART_Popup in column 0 at the full control width while the chevron sits in column 1 - so
+      // asserting against them reports the theme rather than this application's markup. Grids from
+      // a DataTemplate have no TemplatedParent, so item rows stay covered.
+      if (grid.TemplatedParent != null) {
+        continue;
+      }
+
       Control[] children = grid.Children
           .OfType<Control>()
           .Where(child => child.IsVisible && child.Bounds.Width > 0)
           .ToArray();
+      Rect cell = new(0, 0, grid.Bounds.Width, grid.Bounds.Height);
+
+      foreach (Control child in children) {
+        if (!Escapes(child.Bounds, cell)) {
+          continue;
+        }
+
+        problems.Add(
+            $"{Describe(child)} is arranged outside its Grid: {child.Bounds} escapes {cell}");
+      }
 
       for (int i = 0; i < children.Length; i++) {
         for (int j = i + 1; j < children.Length; j++) {
           Control first = children[i];
           Control second = children[j];
 
-          if (!ColumnsAreDisjoint(first, second)
+          if (!ColumnsAreDisjoint(grid, first, second)
               || !OverlapsBeyondRounding(first.Bounds, second.Bounds)) {
             continue;
           }
@@ -77,7 +106,7 @@ public class LayoutOverflowTests {
 
   /// <summary>
   /// A NumericUpDown whose spinner buttons have eaten the whole control still draws its chevrons, so
-  /// the defect is only visible as a text field arranged down to nothing.
+  /// the defect only shows as a text field arranged down to nothing.
   /// </summary>
   private static void CollectCollapsedInputs(Visual root, List<string> problems) {
     foreach (NumericUpDown input in root.GetVisualDescendants().OfType<NumericUpDown>()) {
@@ -96,19 +125,35 @@ public class LayoutOverflowTests {
     }
   }
 
+  private static bool Escapes(Rect child, Rect cell) =>
+      child.Left < -Tolerance
+      || child.Top < -Tolerance
+      || child.Right > cell.Width + Tolerance
+      || child.Bottom > cell.Height + Tolerance;
+
   private static bool OverlapsBeyondRounding(Rect first, Rect second) {
     double horizontal = Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left);
     double vertical = Math.Min(first.Bottom, second.Bottom) - Math.Max(first.Top, second.Top);
     return horizontal > Tolerance && vertical > Tolerance;
   }
 
-  private static bool ColumnsAreDisjoint(Control first, Control second) {
-    int firstStart = Grid.GetColumn(first);
-    int firstEnd = firstStart + Math.Max(1, Grid.GetColumnSpan(first));
-    int secondStart = Grid.GetColumn(second);
-    int secondEnd = secondStart + Math.Max(1, Grid.GetColumnSpan(second));
+  private static bool ColumnsAreDisjoint(AvaloniaGrid grid, Control first, Control second) {
+    (int firstStart, int firstEnd) = ColumnRange(grid, first);
+    (int secondStart, int secondEnd) = ColumnRange(grid, second);
 
     return firstEnd <= secondStart || secondEnd <= firstStart;
+  }
+
+  /// <summary>
+  /// Avalonia clamps an out-of-range Grid.Column to the last column at layout time, so two children
+  /// marked for columns past the end share a cell despite reading as disjoint.
+  /// </summary>
+  private static (int Start, int End) ColumnRange(AvaloniaGrid grid, Control child) {
+    int last = Math.Max(0, grid.ColumnDefinitions.Count - 1);
+    int start = Math.Clamp(AvaloniaGrid.GetColumn(child), 0, last);
+    int end = Math.Clamp(start + Math.Max(1, AvaloniaGrid.GetColumnSpan(child)), start + 1, last + 1);
+
+    return (start, end);
   }
 
   private static string Describe(Control control) {

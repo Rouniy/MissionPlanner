@@ -24,7 +24,7 @@
       <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
     </StackPanel>
 
-    <Grid Grid.Row="2" ColumnDefinitions="*,300">
+    <Grid Grid.Row="2" ColumnDefinitions="*,320">
 
       <Border
         Grid.Column="0"
