@@ -142,8 +142,13 @@ public class DroneCanSessionSafetyTests {
 
     viewModel.RefreshCommand.Execute(null);
 
-    Assert.Empty(can.NodeList);
-    Assert.Empty(can.NodeInfo);
+    // Refresh discards the cache and lets the bus repopulate it, so these dictionaries are live and
+    // an unrelated entry may appear between the clear and the assert. CI caught exactly that: node
+    // 127 - DroneCAN.SourceNode's default, this application's own node id - carrying an
+    // "org.missionplanner" GetNodeInfo response. Assert that the stale entry is gone, which is what
+    // the refresh is responsible for, rather than a global emptiness no caller can rely on.
+    Assert.False(can.NodeList.ContainsKey(42));
+    Assert.False(can.NodeInfo.ContainsKey(42));
     Assert.Empty(viewModel.Nodes);
     Assert.Null(viewModel.SelectedNode);
 
