@@ -20,10 +20,11 @@ public class LayoutOverflowTests {
   private const double Tolerance = 0.5;
 
   /// A NumericUpDown's text box is its outer width less the two 34px spinner buttons and the
-  /// theme's 12px InputPad, so this floor corresponds to a control about 100px wide and leaves room
-  /// for roughly two digits. Measured against the joystick Expo field: 2px before it was widened,
-  /// 52px after.
-  private const double MinimumEditableWidth = 34;
+  /// theme's 12px InputPad. This is deliberately the same boundary as InputSizingTests.SpinnerFloor
+  /// of 98, which admits a 16px field, so a view cannot pass one check and fail the other. It still
+  /// separates the two states decisively: the joystick Expo field measured 2px before it was
+  /// widened and 52px after.
+  private const double MinimumEditableWidth = 16;
 
   /// Enough failures to show the shape of the problem without burying it.
   private const int MaxReported = 12;
