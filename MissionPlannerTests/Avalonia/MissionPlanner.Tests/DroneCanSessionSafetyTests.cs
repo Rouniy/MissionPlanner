@@ -215,9 +215,21 @@ public class DroneCanSessionSafetyTests {
     viewModel.SelectedNode = node;
 
     Task request = viewModel.GetParametersCommand.ExecuteAsync(null);
-    await WaitForAsync(() => viewModel.IsBusy);
-    can.InvokeMessageReceived(ServiceResponseFrame(42, 127),
-        new DroneCAN.DroneCAN.uavcan_protocol_param_GetSet_res(), 0);
+
+    // GetParameters starts a two-second response timeout and only then subscribes its handler
+    // (DroneCAN.cs:544), so a single injection has to land inside a window the test cannot observe:
+    // too early and nothing is subscribed, too late and the operation has already given up and
+    // reports a timeout instead. Waiting on IsBusy first lost that race on CI. Repeating the
+    // injection until the operation observes one is deterministic and idempotent - an empty
+    // response clears the timeout and releases the wait, so the first reply that lands ends it.
+    DateTime deadline = DateTime.UtcNow.AddSeconds(5);
+    while (!request.IsCompleted && DateTime.UtcNow < deadline) {
+      can.InvokeMessageReceived(ServiceResponseFrame(42, 127),
+          new DroneCAN.DroneCAN.uavcan_protocol_param_GetSet_res(), 0);
+      Dispatcher.UIThread.RunJobs();
+      await Task.Delay(10);
+    }
+
     await request;
     Dispatcher.UIThread.RunJobs();
 
