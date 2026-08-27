@@ -1,26 +1,19 @@
-# Mission Planner Avalonia migration instructions
+# Mission Planner — agent instructions
 
-Read `Porting/README.md`, `Porting/BASELINE.md`, `Porting/NATIVE_SURFACE.tsv` and
-`Porting/PORT_SOURCE_IMPORT.tsv` before changing the migration architecture.
+## Rules
 
-The root `MissionPlanner.csproj` is being converted in place from WinForms/net472 to the tested
-cross-platform Avalonia/net10 application. The final repository must contain one main product and
-assembly named `MissionPlanner`; do not add a second sibling application and do not add the old
-`MissionPlanner-Avalonia/external/MissionPlanner` submodule or source dependency.
+- Check control widths at the window's `MinWidth`, not its default size: Avalonia's `Grid` silently
+  paints an overflowing child across its neighbours, and a `NumericUpDown` spends 82px on spinner
+  chrome and padding before its first glyph.
 
-Preserve upstream resources and translations until their replacement has been mapped. Every native
-main-project source/resource must remain represented in `Porting/NATIVE_SURFACE.tsv` as `retain`,
-`replace`, `merge`, `remove`, or `unported-blocker`. A compiling allow-list is only a transition
-mechanism and is not evidence that excluded features have been ported.
+## Docs
 
-The source/reference repository is `/home/alex/src/MP/MissionPlanner-Avalonia` at the exact commit
-recorded in `Porting/BASELINE.md`. Keep it read-only unless the user explicitly asks to maintain it
-separately. Never import `bin`, `obj`, `out`, secrets, signing private keys, or credentials.
-
-The user temporarily disabled Claude. Do not invoke it until that restriction is explicitly lifted.
-If it is re-enabled, use headless `claude -p`; never use `mcp__claude__Agent`.
-
-Work on `port/avalonia-in-place`. Preserve unexpected user changes, use atomic commits, and do not
-merge to `master`, delete the old port repository, or rewrite published history without explicit
-approval. Before each handoff record exact Git state, tests, builds, remaining blockers, and the
-next executable step in `Porting/STATUS.md`.
+- `README.md` — build, run, Linux prerequisites
+- `SITL-TESTING.md` — running the build against a simulated autopilot
+- `Porting/README.md` — Avalonia migration architecture
+- `Porting/STATUS.md` — migration state and handoff record
+- `Porting/BASELINE.md` — frozen baseline commit
+- `Porting/NATIVE_SURFACE.tsv` — per-file port disposition
+- `Porting/FEATURE_AUDIT.md` — cross-platform feature status
+- `Porting/RELEASE.md` — packaging and releases
+- `Porting/NV_MODEM.md` — NV modem setup
