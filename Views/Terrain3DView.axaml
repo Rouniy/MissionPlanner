@@ -20,18 +20,18 @@
           <CheckBox Content="Fog" IsChecked="{Binding FogEnabled, Mode=TwoWay}" />
           <CheckBox Content="Imagery" IsChecked="{Binding ImageryEnabled, Mode=TwoWay}" />
           <TextBlock Text="Range" VerticalAlignment="Center" />
-          <NumericUpDown Width="90" Minimum="250" Maximum="5000" Increment="250"
+          <NumericUpDown Width="130" Minimum="250" Maximum="5000" Increment="250"
                          FormatString="0 m" Value="{Binding RangeM, Mode=TwoWay}" />
           <TextBlock Text="Grid" VerticalAlignment="Center" />
-          <NumericUpDown Width="72" Minimum="17" Maximum="65" Increment="8"
+          <NumericUpDown Width="100" Minimum="17" Maximum="65" Increment="8"
                          FormatString="0" Value="{Binding GridSize, Mode=TwoWay}" />
           <TextBlock Text="Imagery min/max" VerticalAlignment="Center" />
-          <NumericUpDown Width="68" Minimum="1" Maximum="20" Increment="1"
+          <NumericUpDown Width="100" Minimum="1" Maximum="20" Increment="1"
                          FormatString="0" Value="{Binding TextureMinZoom, Mode=TwoWay}" />
-          <NumericUpDown Width="68" Minimum="1" Maximum="20" Increment="1"
+          <NumericUpDown Width="100" Minimum="1" Maximum="20" Increment="1"
                          FormatString="0" Value="{Binding TextureMaxZoom, Mode=TwoWay}" />
           <TextBlock Text="Vertical ×" VerticalAlignment="Center" />
-          <NumericUpDown Width="72" Minimum="0.25" Maximum="8" Increment="0.25"
+          <NumericUpDown Width="120" Minimum="0.25" Maximum="8" Increment="0.25"
                          FormatString="0.##" Value="{Binding VerticalExaggeration, Mode=TwoWay}" />
           <Button Name="ReloadTerrain" Content="Reload terrain" Command="{Binding ReloadCommand}" />
         </StackPanel>
