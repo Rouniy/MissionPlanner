@@ -1,6 +1,37 @@
 # Avalonia in-place migration status
 
-Updated: **2026-08-26**.
+Updated: **2026-08-31**.
+
+## Flight Data Auto Pan settings parity
+
+- Dedicated branch `fix/flight-data-autopan-settings` carries two granular functional commits:
+  `8540f8b74` restores the official setting behavior and `adea69d75` adds its regression tests.
+  The comparison source is the clean official checkout
+  `/home/obazna/dev/misc/MissionPlanner-official` at `2b5589f40` (`latest`).
+- Official Mission Planner starts `CHK_autopan` enabled, restores an existing preference and
+  updates that preference when the checkbox changes. Mission Planner 10 instead initialized the
+  generated `AutoPan` property to false and never loaded or stored `CHK_autopan`. A restored
+  `maplast_lat`/`maplast_lng` viewport was therefore marked centred and stayed at an old location
+  while the live aircraft marker updated off-screen. The port now defaults Auto Pan on without
+  manufacturing a setting, restores an explicit true/false value, and persists later changes.
+- `dotnet build MissionPlanner.csproj -c Release -m:1 --no-restore` succeeds with **0 warnings / 0
+  errors**. The focused Auto Pan tests pass **2/2**, and the complete
+  `PlannerPortParityTests` class passes **58/58**.
+- The complete Avalonia suite ran **1511** cases: **1510 passed** and one unrelated existing
+  `VideoSourceResolverTests.NormalizesCommonStreamSources` case failed because this workstation has
+  a real `/dev/video0`. `VideoSourceResolver.Resolve` treats an existing filesystem path as
+  `FromPath` before its later V4L2 normalization, while the test unconditionally expects
+  `v4l2:///dev/video0`. Neither file is changed on this branch; this is an environment-sensitive
+  pre-existing test/implementation mismatch rather than an Auto Pan regression.
+- The worktree still contains the user's five pre-existing modifications in
+  `Drivers/inf2cat.bat`, `Drivers/uninstall_drivers.bat`, `ExtLibs/Mavlink/regenerate.bat`,
+  `ExtLibs/Mavlink/updatexmls.bat` and `graphs/updatexmls.bat`; none is staged or included in these
+  commits. Claude remains disabled.
+- No Auto Pan code blocker remains. The next executable step is a fresh WP10 SITL launch: confirm
+  Flight Data starts with Auto Pan checked and centres on the live aircraft, then uncheck it,
+  restart WP10 and confirm the explicit false preference is restored. Run the full suite on a host
+  without `/dev/video0`, or address that video test separately, before claiming an entirely green
+  repository suite.
 
 ## Ten-second Flight Data action bounds and compact Actions layout
 
