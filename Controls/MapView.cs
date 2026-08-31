@@ -335,10 +335,7 @@ public class MapView : MapControl {
 
     var (x, y) = SphericalMercator.FromLonLat(cs.lng, cs.lat);
     var pt = new MPoint(x, y);
-    SetVehicleMarker(pt, cs.yaw);
-
-    DrawBearingOverlays(mav, pt);
-    _vehicle.DataHasChanged();
+    PopulateVehicleLayer(mav, pt, Map.Navigator.Viewport.Resolution);
 
     UpdateMapRotation(cs);
 
@@ -1117,9 +1114,14 @@ public class MapView : MapControl {
     Line = new Pen(new Color(255, 105, 180), 2),
   };
 
-  private void DrawBearingOverlays(MAVState mav, MPoint pt) {
+  internal void PopulateVehicleLayer(MAVState mav, MPoint point, double resolution) {
+    SetVehicleMarker(point, mav.cs.yaw);
+    DrawBearingOverlays(mav, point, resolution);
+    _vehicle.DataHasChanged();
+  }
+
+  private void DrawBearingOverlays(MAVState mav, MPoint pt, double resMpp) {
     MissionPlanner.CurrentState cs = mav.cs;
-    double resMpp = Map.Navigator.Viewport.Resolution;
     if (resMpp <= 0) {
       return;
     }
