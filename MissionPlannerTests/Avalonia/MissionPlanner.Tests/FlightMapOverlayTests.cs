@@ -121,7 +121,7 @@ public class FlightMapOverlayTests {
   }
 
   [AvaloniaFact]
-  public void Bearing_overlays_keep_configured_screen_length_when_viewport_zooms() {
+  public void Bearing_overlays_keep_configured_map_length_when_viewport_zooms() {
     string[] settingKeys = {
       "GMapMarkerBase_Length",
       "GMapMarkerBase_DisplayHeading",
@@ -147,12 +147,17 @@ public class FlightMapOverlayTests {
       map.Map.Navigator.CenterOnAndZoomTo(point, 2);
       map.PopulateVehicleLayer(mav, point, map.Map.Navigator.Viewport.Resolution);
 
-      Assert.Equal(500, BearingLineScreenLength(map), 6);
+      Assert.Equal(250, BearingLineScreenLength(map), 6);
 
       map.Map.Navigator.CenterOnAndZoomTo(point, 8);
 
       Assert.Equal(8, map.Map.Navigator.Viewport.Resolution, 6);
-      Assert.Equal(500, BearingLineScreenLength(map), 6);
+      Assert.Equal(62.5, BearingLineScreenLength(map), 6);
+
+      // A periodic telemetry redraw must not expand the vector back to 500 screen pixels.
+      map.PopulateVehicleLayer(mav, point, map.Map.Navigator.Viewport.Resolution);
+
+      Assert.Equal(62.5, BearingLineScreenLength(map), 6);
     } finally {
       foreach ((string key, string? value) in saved) {
         Utilities.Settings.Instance[key] = value;
