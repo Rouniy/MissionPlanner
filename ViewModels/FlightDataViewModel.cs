@@ -147,7 +147,9 @@ public partial class FlightDataViewModel : ViewModelBase, IDisposable {
   private bool _anemometerVisible = true;
 
   public FlightDataViewModel() {
-    _autoPan = Settings.Instance.GetBoolean(_autoPanSetting, true);
+    if (Settings.Instance[_autoPanSetting] != null) {
+      _autoPan = Settings.Instance.GetBoolean(_autoPanSetting);
+    }
     _python = new PythonScriptHost(
         () => AppState.comPort,
         () => AppState.Connections.Snapshot().Select(connection => connection.Link).ToArray(),
