@@ -25,7 +25,15 @@ Updated: **2026-08-31**.
   `Drivers/inf2cat.bat`, `Drivers/uninstall_drivers.bat`, `ExtLibs/Mavlink/regenerate.bat`,
   `ExtLibs/Mavlink/updatexmls.bat` and `graphs/updatexmls.bat`; none is staged or included. Claude
   remains disabled.
-- No code or test blocker remains. Manual acceptance requires rebuilding and relaunching this
+- PR #31's first CI run `33410216298` published, signed and verified the x64 app, then failed while
+  creating its DMG; the arm64 package passed. An earlier run `33381702003` failed at the same
+  boundary on arm64 with `Resource temporarily unavailable`, while its x64 package passed. Commit
+  `f04397be3` gives DMG creation and immediate verification three bounded attempts with 2s/4s
+  backoff, removes a partial image before recreating it, and exposes `hdiutil` diagnostics. A
+  persistent packaging error still fails the build. `bash -n build/macos/make-dmg.sh` and
+  `git diff --check` pass; integration and test reviewers approve the CI hardening.
+- The remaining CI step is to push `f04397be3` and require both macOS package matrix jobs to pass.
+  Manual UI acceptance requires rebuilding and relaunching this
   branch and opening a four-action choice such as the update prompt for a genuinely newer signed
   release: all four buttons must be visible and clickable. After this UI fix lands, the next
   separate task is the Flight Data bearing/target overlay behavior while zooming.
