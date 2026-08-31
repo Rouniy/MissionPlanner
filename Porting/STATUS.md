@@ -36,6 +36,194 @@ Updated: **2026-08-31**.
   without `/dev/video0`, or address that video test separately, before claiming an entirely green
   repository suite.
 
+## Dual startup MAVLink UDP listeners and Debian handoff
+
+- Work is isolated on `port/avalonia-in-place`, as required by the repository handoff policy.
+  Functional commit `ccbfe7740` restores the two upstream default inbound MAVLink listeners at
+  application startup. UDP 14550 and 14551 bind immediately without waiting for a heartbeat and
+  are registered as two independent `MAVLinkInterface`/secondary-runtime connections. Their
+  vehicle lists, reads, writes, disconnect handling and active-link selection therefore remain
+  isolated; multiple systems received on one port continue to use the existing per-component
+  selector. A silent passive listener no longer makes the primary connection button report a
+  false connected session.
+- Planner Settings has a separate **Startup UDP Listeners** group with an enabled-by-default
+  toggle and validated primary/alternate ports (14550/14551). Invalid persisted values fall back
+  to the documented defaults, equal port values create one listener, and changes explicitly take
+  effect after restart. Each listener opens its telemetry log only when its first datagram is
+  ready, so launches without telemetry do not create empty `.tlog`/`.rlog` files. Binding failure
+  on one configured port is contained and does not prevent the other port or the application from
+  starting.
+- Regression coverage sends two real MAVLink heartbeat streams with different sysids to two real
+  loopback UDP sockets and proves that both remain open and that neither vehicle appears on the
+  other link. Default, disabled, duplicate-port and invalid-port behavior is also pinned. The
+  complete final Release suite passes **1550/1550**; `MissionPlanner.slnx` and the standalone SITL
+  harness build with **0 warnings / 0 errors**. All six migration/retirement/artifact gates pass
+  (1623 native rows, 0 blockers, 708/708 pinned port paths, no WinForms dependency, and clean
+  project/binary/key audits).
+- The intentional local sequence increment is isolated in commit `3b88492d1` (`1 -> 2`). The
+  clean-tree Debian artifact is
+  `out/packages/missionplanner10_1.3.83.2-3b88492d_amd64.deb`: 60,128,072 bytes, Debian version
+  `1:1.3.83.2+3b88492d`, installed size 193,792 KiB, SHA-256
+  `a8f111e1eb8bbb44f0a73618ecc1275b194fc355168403a7d0968a26b06bbfd1`. `lintian`, launcher,
+  executable, airport-resource and forbidden Windows-native-library payload checks pass. An
+  isolated extracted-package Xvfb launch reaches the normal event loop (expected timeout 124),
+  emits no stdout/stderr or crash log, creates no empty telemetry logs, and `ss` confirms the
+  packaged process owns both `0.0.0.0:14550` and `0.0.0.0:14551` simultaneously. This is the
+  pre-merge local acceptance package; the GitHub workflow rebuilds every platform artifact from
+  the exact final tagged commit and therefore uses that commit's hash in its filenames.
+- Release was explicitly requested on 2026-08-31. `port/avalonia-in-place` was merged without
+  conflict into `master` by merge commit `55bdaf2b1`; release checkpoint `22ec12fef` is published
+  on `origin/master`. Complete CI/package run `33370869010` passes Linux tests/DEB/TAR smoke,
+  Windows ZIP/MSI build-install-uninstall and both macOS app/DMG jobs. CodeQL run `33370869031`
+  passes on the same commit and the code-scanning API reports zero open alerts.
+- Annotated tag `v1.3.83.2-22ec12fe` resolves exactly to release checkpoint `22ec12fef`. Release
+  workflow `33371674803` passes tag-contract validation, all four fresh platform builds, signed
+  update-manifest generation, checksum aggregation and publication. The stable, non-draft,
+  non-prerelease GitHub Release is
+  `https://github.com/Rouniy/MissionPlanner10/releases/tag/v1.3.83.2-22ec12fe` and contains 19
+  uploaded assets: Linux TAR/DEB/update ZIP, Windows ZIP/MSI/update ZIP, both macOS ZIP/DMG pairs,
+  four manifest/signature pairs and `SHA256SUMS`. The checksum file names all other 18 assets;
+  every manifest reports `1.3.83.2+22ec12fe`, its published bundle URL/hash/size, and every Ed25519
+  signature independently verifies with `build/update-public-key.txt`.
+- This final status-only handoff is the sole commit after the immutable release tag; application
+  source and released binaries remain at `22ec12fef`. Remaining blocker: none for the release.
+  Next executable steps are physical simultaneous-input acceptance on UDP 14550/14551 and, before
+  any later release, an intentional `make bump-local-build` from **2 to 3**.
+
+## NV4 parameter-catalog synchronization and Debian handoff
+
+- The Hermes source checkpoint is clean GTU `master == origin/master`
+  `3eebb35d6d35be5b5fb4c1a753017baff107b082` (`Support legacy NV4 refresh parameter`). Its exact
+  change from `310ca309` in the three `NV5Settings` source/test files has SHA-256
+  `8cb610d33eebeac454c336eafec77fd7b374fb7c85ab61561a7c9b8cb0d22d66`; Mission Planner did not
+  modify the GTU tree. The canonical 56-name NV4 sketch catalog and its parameter-specific
+  descriptions are now pinned locally, including the real automatic-watchdog, SBUS routing,
+  network-octet, RF-statistics, radio-role and currently unused legacy-field semantics.
+- Both firmware apply spellings are supported end to end. `REFRESH_SETTING` and the older
+  `REFRESH_SETTINGS` are recognized as NV4 signatures, hidden/read-only controls and documented
+  aliases. Ordinary saves and 32-byte key transactions write the exact parameter name and MAVLink
+  type advertised by the selected modem; when unusual firmware advertises both, the newer singular
+  name wins deterministically. The runtime table still follows the connected modem's advertised
+  catalog rather than fabricating parameters from the pinned reference list.
+- Code/documentation/test commit `f73d0ef44` and local-sequence commit `69886aeab` are published on
+  `master` and `origin/master`. Focused NV modem tests pass **60/60**, focused version/updater tests
+  pass **48/48**, and the complete Release suite passes **1544/1544**. `MissionPlanner.slnx` and the
+  standalone SITL harness both build with **0 warnings / 0 errors**. All six
+  migration/retirement/artifact gates pass (1623 native rows, 0 blockers, 708/708 pinned paths,
+  clean WinForms, project, binary and key audits); the optional live-source form of the 708-path
+  check could not be repeated because the pinned `MissionPlanner-Avalonia` worktree is no longer
+  present locally, while its committed digest check passes.
+- The first earlier `make linux-deb` attempt encountered the known local logical/physical checkout
+  alias (`/home/alex/src` versus `/home/alex/SRC`) in stale MSBuild intermediates. A standard Release
+  clean followed by the physical-path package script resolved it without source changes. The final
+  clean-tree package is
+  `out/packages/missionplanner10_1.3.83.1-69886aea_amd64.deb`: 60,129,156 bytes, Debian version
+  `1:1.3.83.1+69886aea`, installed size 193,776 KiB, SHA-256
+  `833c5b6536bda483d088d13e4482e7f6999acef4dd83c692280e42d0fce38cd3`. `lintian`, launcher,
+  executable, resource and forbidden-native-library payload checks pass; isolated Xvfb startup
+  reaches the normal event loop (status 124 is the expected 12-second timeout). Earlier local
+  `.7202` packages are superseded test artifacts and were never tagged or released.
+- The only change after the published code/package checkpoint is this status/provenance record.
+  After its push, `HEAD == origin/master` and the worktree is clean. Remaining acceptance boundary:
+  exercise both refresh spellings on representative physical NV4 hardware; GTU's per-endpoint
+  direct/HUB failover remains a separate parity item because Mission Planner's shared parser does
+  not expose sender/listener metadata. GitHub CI/package run `33326289139` and CodeQL run
+  `33326289105` both pass on `69886aeab`; the code-scanning API reports zero open alerts. Manual
+  cross-platform release build `33326726258` also passes on that exact commit and retains four
+  downloadable Actions artifacts (`dist-linux-x64`, `dist-win-x64`, `dist-osx-x64` and
+  `dist-osx-arm64`) with signed update manifests. Because it was a `workflow_dispatch` rather than
+  a tag build, it did not create a tag or public GitHub Release. Next executable step: perform the
+  physical NV4 save/key roundtrip before a tagged release.
+
+## Explicit local build sequence and completed integration handoff
+
+- The upstream version remains `1.3.83` from `Properties/AssemblyInfo.cs`. The tracked,
+  repository-global local sequence lives in `build/local-build-number.txt` and now starts at **1**
+  by explicit user decision. The provisional value `7202` came from taking the next number after
+  the old implicit `git rev-list --count HEAD` result of 7201; it was a compatibility bridge, not a
+  meaningful local release number, and is superseded. `make bump-local-build` performs one guarded
+  atomic increment; ordinary developer builds never modify the counter, and it must not be reset
+  when the upstream version changes.
+- Version-contract commit `a8e060d41` and sequence correction `69886aeab` apply the contract
+  consistently: product/file and UI version `1.3.83.1+<8-char-hash>`, artifact/tag identity
+  `1.3.83.1-<hash>`, Debian version `1:1.3.83.1+<hash>`, MSI product version `1.3.1`, and macOS
+  short/build versions `1.3.83` / `1`. Release tags are rejected unless upstream version, tracked
+  local number and tagged commit hash all match. The updater compares the fourth numeric field,
+  retains the date-based compatibility path and compares the full eight-character build hash.
+- The guarded bump helper was exercised from a clean counter (`1 -> 2`) and restored to `1` after
+  verification. The next intentional local release therefore starts by committing `2`; upstream
+  version changes remain independent of this sequence. The earlier version-contract checkpoint
+  passed complete CI/package run `33324097392`, CodeQL run `33324097344` and the zero-alert API
+  audit; the final `69886aeab` CI, CodeQL and manually dispatched release matrix pass as recorded
+  above.
+- Git state for handoff: the only commit after the published code/package checkpoint is this
+  status-only record; after its push, `HEAD == origin/master` and the worktree is clean. PR #24 is
+  closed as merged with its review/follow-up comment, and `feature/model-calibration-support-20260830`
+  is an ancestor of `master`. No tag or GitHub Release was created. Remaining blocker: none. Next
+  executable release step: run and commit `make bump-local-build` (`1 -> 2`), then tag the resulting commit
+  using `v<upstream>.<local-build>-<8-char-hash>`.
+
+## Log download hardening checkpoint (branch fix/log-download-cancel-tests)
+
+- `MAVLinkInterface.GetLog` gained cancellation (`CancellationToken`, threaded through the
+  download loop and the view model, with a Cancel button in the download window), repair-request
+  chaining (the next missing-range request is issued the moment the current one is satisfied,
+  gated on actual coverage progress so duplicated packets cannot multiply requests), and a
+  time-based silence budget (`retryLimit x LogRetryDelayMs`, so short repair windows no longer
+  shrink the total tolerance a flaky link is allowed). Data beyond the known log end is ignored.
+- `LogDownloadTracker` only trusts a short packet as the log end at the highest offset seen, and
+  only frontier-near packets raise that bar - a stale short retransmit cannot truncate the
+  download and a corrupt far offset cannot poison end inference.
+- A short packet past the trusted frontier is a deferred end candidate, promoted by `GetLog`
+  only once the stream goes quiet (`AcceptPendingTotalLength`): a corrupt packet both short and
+  far cleared the old bar trivially and ended the download at a phantom length - below the true
+  end it silently truncated the returned file. A genuine end packet still lands far past a
+  frontier stalled by packet loss, so rejecting far end packets outright is not an option (that
+  variant never completed the lossy SITL run - every recovered gap forced a full re-stream).
+  Found via review of the equivalent upstream change (ArduPilot/MissionPlanner#3764).
+- The download window toolbar wraps (`WrapPanel` with `ItemSpacing`/`LineSpacing`, window
+  `MinWidth` 420): six items need ~830 px in one row and previously painted past the 540 px
+  default width. A `LayoutOverflowTests` theory guards it at 420 and 540 px.
+- New coverage: `GetLogProtocolTests` (15 fake-vehicle protocol tests: ordering, loss recovery,
+  stray retransmits, corrupt short-far packets, duplicate storms, silence budget, beyond-end
+  data, cancel, timeout), tracker unit tests, and a manual SITL end-to-end harness with a 5%
+  lossy proxy (`MissionPlannerTests/Avalonia/MissionPlanner.SitlTests`, registered as retained
+  tooling in `PROJECT_ARTIFACT_AUDIT.tsv`). SITL reference results: clean 2.3 MB byte-identical
+  in 0.44 s; 5% loss byte-identical in 77.3 s, one streaming pass (~3 s of that is the silence
+  window confirming a deferred end candidate; previously the lossy run did not complete - repair
+  served one gap per 3 s silence window).
+- PR #24 head `6257c6c53e5c6cef8069e7dd397e09e946634d21` was reviewed and integrated
+  locally into `master` by merge commit `0ef837654`. Review follow-up `fee3c2dc3` keeps the UI
+  recoverable when the native file/folder picker fails and prevents a cancellation arriving
+  during the final synchronous KML export from being reported as success once export returns.
+  The complete Release suite passes **1531/1531**; `MissionPlanner.slnx` and the standalone SITL
+  harness both build with **0 warnings / 0 errors**; the proxy parses; and all six migration,
+  retirement and artifact checks pass (1623 native rows, 0 blockers, 708/708 pinned paths).
+- The fork PR workflows remained `action_required`, so they never executed on the contributor
+  head. The reviewed integration was pushed instead: GitHub records PR #24 as `MERGED` with merge
+  commit `0ef83765432b04db2ed3af70aa87d8081fdcfd52`, and the PR contains a review comment listing
+  the accepted behavior, follow-up and verification. Master head `02e8f38f4` passed the complete
+  Linux/Windows/macOS x64/macOS arm64 CI/package workflow and CodeQL. Rerun the clean + 5%-loss
+  SITL harness after any further `GetLog`/tracker change, per its README.
+## Custom ArduCopter model-calibration mode
+
+- Branch `feature/model-calibration-support-20260830` is based on clean published `master`
+  `58b2ea4c5a192abd6fe71a11cc67eac7837e3781`. It adds this fork's `ModelCal` flight mode to
+  the Copter mode catalogue as custom mode **31**, so live mode selection, MAVLink translation,
+  configuration selectors and DataFlash mode labels all resolve the same number even when the
+  bundled upstream parameter metadata predates the custom firmware.
+- Mode 29 was deliberately not reused: the current MAVLink `COPTER_MODE` enum assigns it to
+  `RATE_ACRO`; ArduCopter reserves 30 for offboard control. Regression tests pin `ModelCal` to 31
+  and protect against accidentally mapping it back onto 29.
+- Source commit `715e8115e` was merged into `master` on top of the complete PR #24 integration by
+  merge commit `a9788c244`. On the combined tree, focused Flight Data/DataFlash checks pass
+  **58/58**, the complete Release suite passes **1533/1533**, and both `MissionPlanner.slnx` and
+  the standalone log-download SITL harness build with **0 warnings / 0 errors**. All six porting
+  gates pass (1623 native rows, 0 blockers, 708/708 pinned paths, clean WinForms and artifact
+  audits). No package, tag or release was created.
+- The combined merge/status commits were pushed to `origin/master`. CI/package run `33323244170`
+  and CodeQL run `33323244173` both passed on `adedcf62b`; the later version-contract checkpoint
+  above provides the final combined verification.
 ## Ten-second Flight Data action bounds and compact Actions layout
 
 - The Flight Data `Arm / Disarm` action now uses an explicit ten-second total MAVLink ACK bound
@@ -569,23 +757,18 @@ Updated: **2026-08-31**.
 
 ## GTU synchronization checkpoint
 
-- NV modem behavior was last compared with `/home/alex/src/AgroSky/GTU` at fetched
-  `origin/master` `d74f43087fa591d7ac43f690e0eda5ef654373ea`; local `master` is one unrelated
-  D3D11/package commit ahead and has no additional `NV5Settings` changes. Earlier GTU refinement
-  `77af510a47f8cbe7ea02fcc047019b07fb2c0c26` keeps selected-radio key targeting independent of
-  `DIVERSITY`, and **Revert selected** restores one staged parameter locally without sending
-  MAVLink. Both behaviors and their regression tests are ported. Checkpoint `f196ea689` additionally
-  supplies current unlocked-channel RSSI semantics, now ported with matching tests. Newer GTU
-  changes through `d74f4308` add current LoRa/FLRC acquisition presets, 64..496/step-16 frame
-  validation, typed rejection diagnostics, attached-modem HUB management and UID2-based identity
-  migration. Mission Planner ports those semantics using the exact observed `MAVLinkInterface` as
-  its management-route boundary because its parser does not expose GTU's per-datagram sender IP and
-  scope metadata. Strict passport capability checks, offline/requested address migration and live
-  duplicate/conflict guards have matching regression coverage. `REFRESH_SETTING` remains a typed
-  `UINT32`; NV5 key words remain signed `INT32` values preserving the same raw bytes.
-- The `d74f4308` synchronization passes all 58 focused NV modem tests and the complete
-  **1506/1506** Avalonia port suite. The Release solution build completes with zero warnings and
-  zero errors before native Linux packaging.
+- NV modem behavior was most recently compared with clean
+  `/home/alex/src/AgroSky/GTU` `master == origin/master` at `3eebb35d6d35be5b5fb4c1a753017baff107b082`.
+  Earlier checkpoints remain represented: `77af510a` keeps key targeting independent of
+  `DIVERSITY` and supplies **Revert selected**; `f196ea689` supplies unlocked-channel RSSI
+  semantics; and changes through `d74f4308` supply acquisition presets, frame validation, typed
+  rejection diagnostics, attached-modem management and UID2 identity migration.
+- GTU `263218e8` adds redundant per-endpoint management routes and pre-write identity/IP collision
+  checks without changing the parameter catalog. Mission Planner continues to use the exact
+  observed `MAVLinkInterface` as its route boundary because its shared parser does not expose GTU's
+  per-datagram sender/listener metadata. The later `3eebb35d` NV4 catalog, descriptions and both
+  advertised refresh spellings are synchronized and verified as recorded in the current handoff
+  above. NV5 key words remain signed `INT32` values preserving the same raw bytes.
 - Before each later NV modem change and before a release, recheck both committed and uncommitted
   GTU changes with `git status`, then compare every newer change to `hermes-gui/include/nv5settings.h`,
   `hermes-gui/src/nv5settings.cpp` and `hermes-gui/test/testnv5settings.cpp`. Update this commit and
