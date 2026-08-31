@@ -14,30 +14,33 @@ public class FlightPlannerViewportTests {
   public void Waypoint_redraw_preserves_an_initialized_viewport() {
     var map = new FlightPlannerMap();
     var window = new Window { Width = 1200, Height = 800, Content = map };
-    window.Show();
-    Dispatcher.UIThread.RunJobs();
+    try {
+      window.Show();
+      Dispatcher.UIThread.RunJobs();
 
-    map.CenterOnAndZoom(50.344, 30.88, 14);
-    map.SetHome(37.619373, -122.376637, 5.28);
-    map.SetWaypoints(KyivWaypoints(2), 50, 80, Firmwares.ArduPlane);
-    Dispatcher.UIThread.RunJobs();
-    Mapsui.Viewport expected = map.Map.Navigator.Viewport;
+      map.CenterOnAndZoom(50.344, 30.88, 14);
+      map.SetHome(37.619373, -122.376637, 5.28);
+      map.SetWaypoints(KyivWaypoints(2), 50, 80, Firmwares.ArduPlane);
+      Dispatcher.UIThread.RunJobs();
+      Mapsui.Viewport expected = map.Map.Navigator.Viewport;
 
-    WritableLayer route = RouteLayer(map);
-    route.DataChanged += (_, _) => {
-      if (route.GetFeatures().OfType<GeometryFeature>().Count() == 2) {
-        map.Map.Navigator.ZoomToBox(route.Extent);
-      }
-    };
+      WritableLayer route = RouteLayer(map);
+      route.DataChanged += (_, _) => {
+        if (route.GetFeatures().OfType<GeometryFeature>().Count() == 2) {
+          Dispatcher.UIThread.Post(() => map.Map.Navigator.ZoomToBox(route.Extent));
+        }
+      };
 
-    map.SetWaypoints(KyivWaypoints(3), 50, 80, Firmwares.ArduPlane);
-    Dispatcher.UIThread.RunJobs();
-    Mapsui.Viewport actual = map.Map.Navigator.Viewport;
+      map.SetWaypoints(KyivWaypoints(3), 50, 80, Firmwares.ArduPlane);
+      Dispatcher.UIThread.RunJobs();
+      Mapsui.Viewport actual = map.Map.Navigator.Viewport;
 
-    Assert.Equal(expected.CenterX, actual.CenterX, 3);
-    Assert.Equal(expected.CenterY, actual.CenterY, 3);
-    Assert.Equal(expected.Resolution, actual.Resolution, 6);
-    window.Close();
+      Assert.Equal(expected.CenterX, actual.CenterX, 3);
+      Assert.Equal(expected.CenterY, actual.CenterY, 3);
+      Assert.Equal(expected.Resolution, actual.Resolution, 6);
+    } finally {
+      window.Close();
+    }
   }
 
   [AvaloniaFact]
