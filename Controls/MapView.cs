@@ -78,6 +78,9 @@ public class MapView : MapControl {
   private float _lastGuidedZ;
   private bool _guidedWasVisible;
   private bool _viewportRestored;
+  private MAVState? _vehicleOverlayMav;
+  private MPoint? _vehicleOverlayPoint;
+  private double _vehicleOverlayResolution = double.NaN;
 
   public (double Lat, double Lng) LastClickLatLng { get; private set; }
 
@@ -168,6 +171,7 @@ public class MapView : MapControl {
     map.Layers.Add(_vehicle);
 
     map.Navigator.Limiter = new Mapsui.Limiting.ViewportLimiterKeepWithinExtent();
+    map.Navigator.ViewportChanged += OnViewportChanged;
     Map = map;
     ApplyImportedOverlay();
     _airports = new AirportOverlayController(this, alwaysShow: false);
@@ -1115,9 +1119,29 @@ public class MapView : MapControl {
   };
 
   internal void PopulateVehicleLayer(MAVState mav, MPoint point, double resolution) {
+    _vehicleOverlayMav = mav;
+    _vehicleOverlayPoint = point;
+    RedrawVehicleLayer(mav, point, resolution);
+  }
+
+  private void RedrawVehicleLayer(MAVState mav, MPoint point, double resolution) {
+    _vehicleOverlayResolution = resolution;
     SetVehicleMarker(point, mav.cs.yaw);
     DrawBearingOverlays(mav, point, resolution);
     _vehicle.DataHasChanged();
+  }
+
+  private void OnViewportChanged(object sender, ViewportChangedEventArgs e) {
+    double resolution = e.Viewport.Resolution;
+    if (_vehicleOverlayMav == null || _vehicleOverlayPoint == null
+        || !double.IsFinite(resolution) || resolution <= 0
+        || resolution.Equals(_vehicleOverlayResolution)) {
+      return;
+    }
+
+    // Upstream draws these bearings in marker/screen space. Mapsui stores them as map geometry,
+    // so rebuild them for the new resolution to preserve the configured pixel length while zooming.
+    RedrawVehicleLayer(_vehicleOverlayMav, _vehicleOverlayPoint, resolution);
   }
 
   private void DrawBearingOverlays(MAVState mav, MPoint pt, double resMpp) {
@@ -1261,6 +1285,9 @@ public class MapView : MapControl {
     if (lat == 0 && lng == 0) {
       return;
     }
+    _vehicleOverlayMav = null;
+    _vehicleOverlayPoint = null;
+    _vehicleOverlayResolution = double.NaN;
     var (x, y) = SphericalMercator.FromLonLat(lng, lat);
     var pt = new MPoint(x, y);
     SetVehicleMarker(pt, 0);
