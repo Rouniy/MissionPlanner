@@ -165,7 +165,6 @@ public class MapView : MapControl {
     map.Layers.Add(_movingBase);
     map.Layers.Add(_cameraTarget);
     map.Layers.Add(_otherVehicles);
-    _vehicle.Style = MavMarker.Vehicle(0);
     map.Layers.Add(_vehicle);
 
     map.Navigator.Limiter = new Mapsui.Limiting.ViewportLimiterKeepWithinExtent();
@@ -336,9 +335,7 @@ public class MapView : MapControl {
 
     var (x, y) = SphericalMercator.FromLonLat(cs.lng, cs.lat);
     var pt = new MPoint(x, y);
-    _vehicle.Style = MavMarker.Vehicle(cs.yaw);
-    _vehicle.Clear();
-    _vehicle.Add(new PointFeature(pt));
+    SetVehicleMarker(pt, cs.yaw);
 
     DrawBearingOverlays(mav, pt);
     _vehicle.DataHasChanged();
@@ -1165,6 +1162,16 @@ public class MapView : MapControl {
     _vehicle.Add(line);
   }
 
+  private void SetVehicleMarker(MPoint point, double headingDeg) {
+    // Keep the symbol on the point feature. A layer-level symbol is also applied to the
+    // bearing-line and turn-radius geometries, which renders duplicate aircraft along them.
+    _vehicle.Style = null;
+    _vehicle.Clear();
+    var marker = new PointFeature(point);
+    marker.Styles.Add(MavMarker.Vehicle(headingDeg));
+    _vehicle.Add(marker);
+  }
+
   private void AddRadiusArc(MPoint pt, double cogDeg, double radius, double resMpp) {
     if (Math.Abs(radius) <= 1) {
       return;
@@ -1254,9 +1261,7 @@ public class MapView : MapControl {
     }
     var (x, y) = SphericalMercator.FromLonLat(lng, lat);
     var pt = new MPoint(x, y);
-    _vehicle.Style = MavMarker.Vehicle(0);
-    _vehicle.Clear();
-    _vehicle.Add(new PointFeature(pt));
+    SetVehicleMarker(pt, 0);
     _vehicle.DataHasChanged();
     Map.Navigator.CenterOn(pt);
   }
