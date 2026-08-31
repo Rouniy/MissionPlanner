@@ -8,8 +8,8 @@ Updated: **2026-08-31**.
   `8540f8b74` restores the official setting behavior, `adea69d75` adds its initial regression
   tests, `e6cf79aee` matches official handling of a malformed present value, and `7d570b224`
   covers the complete absent/true/false/malformed settings matrix.
-  The comparison source is the clean official checkout
-  `/home/obazna/dev/misc/MissionPlanner-official` at `2b5589f40` (`latest`).
+  The comparison source is the official `ArduPilot/MissionPlanner` repository at commit
+  `2b5589f40` (`latest`).
 - PR #26 (`https://github.com/Rouniy/MissionPlanner10/pull/26`) tracks this branch. Merge commit
   `cbe4c4db8` brings it onto current `origin/master` `2f99868f2`; its only textual conflict was
   this status file, where both the Auto Pan record and upstream's dual-listener release record
