@@ -55,6 +55,22 @@ public class FlightMapOverlayTests {
     Assert.Contains("Other vehicles", names);
   }
 
+  [AvaloniaFact]
+  public void Flight_map_scopes_vehicle_symbol_to_the_point_feature() {
+    var map = new MapView();
+
+    map.ShowSampleMarker(34, 33);
+
+    Mapsui.Layers.WritableLayer layer = Assert.IsType<Mapsui.Layers.WritableLayer>(
+        Assert.Single(map.Map.Layers, candidate => candidate.Name == "Vehicle"));
+    Assert.Null(layer.Style);
+    Mapsui.Layers.PointFeature marker = Assert.Single(
+        layer.GetFeatures().OfType<Mapsui.Layers.PointFeature>());
+    Mapsui.Styles.SymbolStyle style = Assert.Single(
+        marker.Styles.OfType<Mapsui.Styles.SymbolStyle>());
+    Assert.Equal(Mapsui.Styles.SymbolType.Triangle, style.SymbolType);
+  }
+
   [Theory]
   [InlineData(Firmwares.ArduCopter2, 1, 2, 150, true)]
   [InlineData(Firmwares.ArduCopter2, 1, 3, 150, true)]
