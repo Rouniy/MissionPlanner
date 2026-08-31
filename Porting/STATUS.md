@@ -2,6 +2,36 @@
 
 Updated: **2026-08-31**.
 
+## Flight Data bearing-overlay zoom stability
+
+- Dedicated branch `fix/flight-data-bearing-overlay-zoom` starts from merged `master`
+  `47fc0de85`. Commit `005462291` rebuilds the live vehicle bearing overlay whenever the Mapsui
+  viewport resolution changes; commit `40de2497f` adds the zoom regression. The comparison source
+  is official `ArduPilot/MissionPlanner` commit `2b5589f40`.
+- Official Mission Planner draws heading, navigation, course and target bearings in marker/screen
+  space on every repaint. The Avalonia port represented them as map geometry sized from the
+  resolution at the last telemetry tick, so zooming from resolution 2 to 8 temporarily shrank a
+  configured 500px bearing to 125px. `MapView` now caches only the last live MAV/point needed to
+  rebuild that small feature set on resolution changes. It does not read global telemetry, append
+  track points, Auto Pan, recenter or change map rotation from the viewport callback. Pans and
+  rotations do not rebuild because their resolution is unchanged, and Log Browse sample markers
+  clear the live cache.
+- `FlightMapOverlayTests` passes **29/29**; the new regression drives the real Navigator callback
+  and verifies the bearing remains exactly 500px across a 4x resolution change. The pre-fix result
+  was the reported scaling error: expected 500px, actual 125px. The Release build succeeds with **0
+  warnings / 0 errors**. The complete Avalonia suite ran **1567** cases: **1566 passed** and only the
+  existing environment-sensitive `VideoSourceResolverTests.NormalizesCommonStreamSources`
+  `/dev/video0` case failed; neither the resolver nor its test changes on this branch.
+- Behavior, integration and test reviewers approve exact code/test head `40de2497f`. The worktree
+  still contains only the user's five pre-existing modifications in `Drivers/inf2cat.bat`,
+  `Drivers/uninstall_drivers.bat`, `ExtLibs/Mavlink/regenerate.bat`,
+  `ExtLibs/Mavlink/updatexmls.bat` and `graphs/updatexmls.bat`; none is staged or included. Claude
+  remains disabled.
+- No code or automated-test blocker remains. Manual acceptance requires rebuilding and relaunching
+  this branch (the already running process predates it), connecting the live vehicle, and zooming
+  Flight Data in and out: all enabled bearing lines must retain their configured on-screen length
+  without duplicating the aircraft symbol.
+
 ## Choice-dialog action layout
 
 - Dedicated branch `fix/dialog-choice-button-layout` starts from merged `master` `4700897ad`.
