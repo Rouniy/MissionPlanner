@@ -382,6 +382,7 @@ public class UpdaterTests {
   [InlineData("1.3.83.1+abcdef00", "1.3.83.1+abcdef00", false)]
   [InlineData("1.3.83.2+22ec12fe", "1.3.83.2+bcc3e2c0.dirty", false)]
   [InlineData("1.3.83.3+22ec12fe", "1.3.83.2+bcc3e2c0.dirty", true)]
+  [InlineData("1.3.83.2+20260822.abcdef01", "1.3.83.2+20260821.abcdef00", false)]
   [InlineData("1.3.83.1+abcdef00", "1.3.83+20260830.abcdef00", true)]
   [InlineData("1.3.83+20260830.abcdef00", "1.3.83.1+abcdef00", false)]
   [InlineData("1.3.83+20260822.abcdef0", "1.3.83+20260821.abcdef0", true)]
