@@ -659,12 +659,9 @@ public sealed class UpdateEngine {
       return dateComparison > 0;
     }
 
-    // Git hashes do not have a useful ordering. If the release server and local build have
-    // different commits for the same official version/local build, install the server's selected
-    // release once; after the update their hashes match and it no longer prompts.
-    return remoteParts.Hash.Length > 0
-        && localParts.Hash.Length > 0
-        && !string.Equals(remoteParts.Hash, localParts.Hash, StringComparison.OrdinalIgnoreCase);
+    // Commit and dirty markers are build metadata, not version precedence. Two builds with the
+    // same official version and legacy build date are peers even when their source hashes differ.
+    return false;
   }
 
   private static (int, int, int, int) V4(string s) {
