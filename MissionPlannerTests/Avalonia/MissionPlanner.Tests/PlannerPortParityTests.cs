@@ -329,6 +329,11 @@ public class PlannerPortParityTests {
     const string key = "CHK_autopan";
     string? saved = Settings.Instance[key];
     try {
+      Settings.Instance[key] = bool.TrueString;
+      using (var enabled = new FlightDataViewModel()) {
+        Assert.True(enabled.AutoPan);
+      }
+
       Settings.Instance[key] = bool.FalseString;
 
       using var vm = new FlightDataViewModel();
@@ -338,6 +343,22 @@ public class PlannerPortParityTests {
       Assert.Equal(bool.TrueString, Settings.Instance[key]);
       vm.AutoPan = false;
       Assert.Equal(bool.FalseString, Settings.Instance[key]);
+    } finally {
+      Settings.Instance[key] = saved;
+    }
+  }
+
+  [AvaloniaFact]
+  public void Flight_data_auto_pan_treats_a_malformed_present_preference_like_official() {
+    const string key = "CHK_autopan";
+    string? saved = Settings.Instance[key];
+    try {
+      Settings.Instance[key] = "not-a-boolean";
+
+      using var vm = new FlightDataViewModel();
+
+      Assert.False(vm.AutoPan);
+      Assert.Equal("not-a-boolean", Settings.Instance[key]);
     } finally {
       Settings.Instance[key] = saved;
     }
