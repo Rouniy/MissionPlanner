@@ -10,6 +10,10 @@ Updated: **2026-08-31**.
   covers the complete absent/true/false/malformed settings matrix.
   The comparison source is the clean official checkout
   `/home/obazna/dev/misc/MissionPlanner-official` at `2b5589f40` (`latest`).
+- PR #26 (`https://github.com/Rouniy/MissionPlanner10/pull/26`) tracks this branch. Merge commit
+  `cbe4c4db8` brings it onto current `origin/master` `2f99868f2`; its only textual conflict was
+  this status file, where both the Auto Pan record and upstream's dual-listener release record
+  were retained.
 - Official Mission Planner starts `CHK_autopan` enabled, restores an existing preference and
   updates that preference when the checkbox changes. Mission Planner 10 instead initialized the
   generated `AutoPan` property to false and never loaded or stored `CHK_autopan`. A restored
@@ -17,10 +21,10 @@ Updated: **2026-08-31**.
   while the live aircraft marker updated off-screen. The port now defaults Auto Pan on without
   manufacturing a setting, restores an explicit true/false value, treats a malformed present
   value as false like official Mission Planner, and persists later changes.
-- `dotnet build MissionPlanner.csproj -c Release -m:1 --no-restore` succeeds with **0 warnings / 0
-  errors**. The focused Auto Pan tests pass **3/3**, and the complete
+- On the merged result, `dotnet build MissionPlanner.csproj -c Release -m:1 --no-restore` succeeds
+  with **0 warnings / 0 errors**. The focused Auto Pan tests pass **3/3**, and the complete
   `PlannerPortParityTests` class passes **59/59**.
-- The complete Avalonia suite ran **1512** cases: **1511 passed** and one unrelated existing
+- The complete merged Avalonia suite ran **1553** cases: **1552 passed** and one unrelated existing
   `VideoSourceResolverTests.NormalizesCommonStreamSources` case failed because this workstation has
   a real `/dev/video0`. `VideoSourceResolver.Resolve` treats an existing filesystem path as
   `FromPath` before its later V4L2 normalization, while the test unconditionally expects
@@ -30,7 +34,8 @@ Updated: **2026-08-31**.
   `Drivers/inf2cat.bat`, `Drivers/uninstall_drivers.bat`, `ExtLibs/Mavlink/regenerate.bat`,
   `ExtLibs/Mavlink/updatexmls.bat` and `graphs/updatexmls.bat`; none is staged or included in these
   commits. Claude remains disabled.
-- No Auto Pan code blocker remains. The next executable step is a fresh WP10 SITL launch: confirm
+- No Auto Pan code blocker remains. The next executable acceptance step is a fresh WP10 SITL
+  launch: confirm
   Flight Data starts with Auto Pan checked and centres on the live aircraft, then uncheck it,
   restart WP10 and confirm the explicit false preference is restored. Run the full suite on a host
   without `/dev/video0`, or address that video test separately, before claiming an entirely green
