@@ -6,7 +6,8 @@ Updated: **2026-08-31**.
 
 - Dedicated branch `fix/flight-data-vehicle-overlay-rendering` starts from pulled `master`
   `5a1c11ea3`. Commit `7379e6dde` scopes the active aircraft triangle to its point feature;
-  commit `109872c5e` adds the rendering regression test.
+  commit `109872c5e` adds the rendering regression test, and reviewer follow-up `a4f218da0`
+  exercises the complete live fixed-wing layer with all four bearing lines and its radius arc.
 - Flight Data previously assigned `MavMarker.Vehicle` as the style of the complete `Vehicle`
   layer, then added heading, course, navigation-bearing, target-bearing and turn-radius geometries
   to that same layer. Mapsui consequently painted the aircraft symbol on those geometries too,
@@ -14,8 +15,8 @@ Updated: **2026-08-31**.
   no shared symbol style, while its aircraft point owns the triangle style; bearing and radius
   features retain only their vector styles. Log Browse sample markers use the same safe path.
 - `dotnet build MissionPlanner.csproj -c Release -m:1 --no-restore` succeeds with **0 warnings / 0
-  errors**, and the focused `FlightMapOverlayTests` pass **27/27**. The complete Avalonia suite ran
-  **1554** cases: **1553 passed** and only the existing environment-sensitive
+  errors**, and the focused `FlightMapOverlayTests` pass **28/28**. The complete Avalonia suite ran
+  **1555** cases: **1554 passed** and only the existing environment-sensitive
   `VideoSourceResolverTests.NormalizesCommonStreamSources` `/dev/video0` case failed. Neither the
   resolver nor its test changes on this branch.
 - The worktree still contains the user's five pre-existing modifications in
