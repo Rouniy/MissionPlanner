@@ -32,11 +32,13 @@ Updated: **2026-08-31**.
   backoff, removes a partial image before recreating it, and exposes `hdiutil` diagnostics. A
   persistent packaging error still fails the build. `bash -n build/macos/make-dmg.sh` and
   `git diff --check` pass; integration and test reviewers approve the CI hardening.
-- The remaining CI step is to push `f04397be3` and require both macOS package matrix jobs to pass.
-  Manual UI acceptance requires rebuilding and relaunching this
-  branch and opening a four-action choice such as the update prompt for a genuinely newer signed
-  release: all four buttons must be visible and clickable. After this UI fix lands, the next
-  separate task is the Flight Data bearing/target overlay behavior while zooming.
+- Follow-up CI run `33411440256` passed on pushed head `719b1858b`: the complete Linux build/test
+  and package job, Windows package build/install validation, and both macOS x64 and arm64 signed
+  app/DMG builds, mount checks and artifact uploads are green. No automated blocker remains. Manual
+  UI acceptance requires rebuilding and relaunching this branch and opening a four-action choice
+  such as the update prompt for a genuinely newer signed release: all four buttons must be visible
+  and clickable. After this UI fix lands, the next separate task is the Flight Data bearing/target
+  overlay behavior while zooming.
 
 ## Updater equal-version metadata precedence
 
