@@ -4,8 +4,10 @@ Updated: **2026-08-31**.
 
 ## Flight Data Auto Pan settings parity
 
-- Dedicated branch `fix/flight-data-autopan-settings` carries two granular functional commits:
-  `8540f8b74` restores the official setting behavior and `adea69d75` adds its regression tests.
+- Dedicated branch `fix/flight-data-autopan-settings` carries four granular code/test commits:
+  `8540f8b74` restores the official setting behavior, `adea69d75` adds its initial regression
+  tests, `e6cf79aee` matches official handling of a malformed present value, and `7d570b224`
+  covers the complete absent/true/false/malformed settings matrix.
   The comparison source is the clean official checkout
   `/home/obazna/dev/misc/MissionPlanner-official` at `2b5589f40` (`latest`).
 - Official Mission Planner starts `CHK_autopan` enabled, restores an existing preference and
@@ -13,11 +15,12 @@ Updated: **2026-08-31**.
   generated `AutoPan` property to false and never loaded or stored `CHK_autopan`. A restored
   `maplast_lat`/`maplast_lng` viewport was therefore marked centred and stayed at an old location
   while the live aircraft marker updated off-screen. The port now defaults Auto Pan on without
-  manufacturing a setting, restores an explicit true/false value, and persists later changes.
+  manufacturing a setting, restores an explicit true/false value, treats a malformed present
+  value as false like official Mission Planner, and persists later changes.
 - `dotnet build MissionPlanner.csproj -c Release -m:1 --no-restore` succeeds with **0 warnings / 0
-  errors**. The focused Auto Pan tests pass **2/2**, and the complete
-  `PlannerPortParityTests` class passes **58/58**.
-- The complete Avalonia suite ran **1511** cases: **1510 passed** and one unrelated existing
+  errors**. The focused Auto Pan tests pass **3/3**, and the complete
+  `PlannerPortParityTests` class passes **59/59**.
+- The complete Avalonia suite ran **1512** cases: **1511 passed** and one unrelated existing
   `VideoSourceResolverTests.NormalizesCommonStreamSources` case failed because this workstation has
   a real `/dev/video0`. `VideoSourceResolver.Resolve` treats an existing filesystem path as
   `FromPath` before its later V4L2 normalization, while the test unconditionally expects
